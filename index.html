@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flashcard Quiz</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, textarea, button {
+      width: 100%;
+      font-size: 1.1em;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 5px;
+    }
+    #quizSection {
+      border-top: 2px solid #444;
+      margin-top: 30px;
+      padding-top: 20px;
+    }
+    #quizCard {
+      font-size: 1.5em;
+      padding: 20px;
+      border: 1px solid #aaa;
+      margin-bottom: 10px;
+      min-height: 60px;
+    }
+    .hidden {
+      display: none;
+    }
+    .rating-btns button {
+      width: 18%;
+      margin: 1%;
+    }
+    #toggleCardsBtn {
+      font-size: 0.9em;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <label for="deckName">Deck Name:</label>
+  <input type="text" id="deckName" placeholder="Enter deck name">
+  <button onclick="loadDeck()">Load Deck</button>
+  <button onclick="deleteDeck()">Delete Deck</button>
+  <button onclick="saveDeck()">Save Deck</button>
+  <button id="toggleDeckListBtn" onclick="toggleDeckList()">Show Saved Decks</button>
+<div id="savedDeckList" class="hidden">
+  <h3>Saved Decks</h3>
+  <div id="deckNames"></div>
+</div>
+
+
+  <h2>Flashcard Creator</h2>
+  <label>Front:</label>
+  <input type="text" id="front" placeholder="Type front of card">
+  <label>Back:</label>
+  <input type="text" id="back" placeholder="Press Tab or tap to switch here">
+  <button onclick="saveCard()">Save Card (Enter)</button>
+
+  <button id="toggleCardsBtn" onclick="toggleCardList()">Show Saved Cards</button>
+  <div id="cardList" class="hidden">
+    <h3>Saved Cards:</h3>
+    <div id="cards"></div>
+  </div>
+
+  <div id="quizSection">
+    <h2>Quiz Mode</h2>
+    <button onclick="startQuiz()">Start Quiz</button>
+    <div id="quizArea" style="display: none;">
+      <div id="quizCard">Loading...</div>
+      <button onclick="toggleCard()">Flip Card</button>
+      <div class="rating-btns">
+        <button onclick="rateCard(1)">1</button>
+        <button onclick="rateCard(2)">2</button>
+        <button onclick="rateCard(3)">3</button>
+        <button onclick="rateCard(4)">4</button>
+        <button onclick="rateCard(5)">5</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getStoredDecks() {
+  return JSON.parse(localStorage.getItem('flashcardDecks')) || {};
+}
+
+function saveDeck() {
+  const name = document.getElementById('deckName').value.trim();
+  if (!name) {
+    alert("Please enter a deck name first.");
+    return;
+  }
+
+  const allDecks = getStoredDecks();
+  allDecks[name] = deck;
+  localStorage.setItem('flashcardDecks', JSON.stringify(allDecks));
+  alert(`Deck "${name}" saved.`);
+}
+
+function loadDeck() {
+  const name = document.getElementById('deckName').value.trim();
+  if (!name) {
+    alert("Please enter a deck name to load.");
+    return;
+  }
+
+  const allDecks = getStoredDecks();
+  if (!allDecks[name]) {
+    alert(`No deck found with name "${name}". Starting new deck.`);
+    deck = [];
+  } else {
+    deck = allDecks[name];
+  }
+
+  renderCards();
+}
+
+    let deck = [];
+    let quizQueue = [];
+    let currentCard = null;
+    let showingBack = false;
+    let cardsVisible = false;
+
+    const frontInput = document.getElementById('front');
+    const backInput = document.getElementById('back');
+    const cardsDiv = document.getElementById('cards');
+    const quizCardDiv = document.getElementById('quizCard');
+    const quizArea = document.getElementById('quizArea');
+    const cardList = document.getElementById('cardList');
+    const toggleBtn = document.getElementById('toggleCardsBtn');
+
+    frontInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        backInput.focus();
+      }
+    });
+
+    backInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveCard();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (quizArea.style.display === 'block') {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          toggleCard();
+        }
+        if (['1', '2', '3', '4', '5'].includes(e.key)) {
+          rateCard(parseInt(e.key));
+        }
+      }
+    });
+
+    function saveCard() {
+      const front = frontInput.value.trim();
+      const back = backInput.value.trim();
+      if (!front || !back) return;
+
+      deck.push({ front, back });
+      frontInput.value = '';
+      backInput.value = '';
+      frontInput.focus();
+
+      renderCards();
+    }
+
+    function renderCards() {
+  cardsDiv.innerHTML = '';
+  deck.forEach((card, index) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <strong>${index + 1}.</strong> ${card.front} / ${card.back}
+      <button style="float:right;" onclick="deleteCard(${index})">Delete</button>
+    `;
+    cardsDiv.appendChild(div);
+  });
+}
+function deleteCard(index) {
+  if (!confirm("Delete this card?")) return;
+  deck.splice(index, 1);
+  renderCards();
+}
+
+
+    function toggleCardList() {
+      cardsVisible = !cardsVisible;
+      cardList.classList.toggle('hidden', !cardsVisible);
+      toggleBtn.textContent = cardsVisible ? 'Hide Saved Cards' : 'Show Saved Cards';
+    }
+
+    function startQuiz() {
+      if (deck.length === 0) {
+        alert("Add some flashcards first!");
+        return;
+      }
+      quizQueue = [...deck];
+      quizArea.style.display = 'block';
+      nextCard();
+    }
+
+    function nextCard() {
+      if (quizQueue.length === 0) {
+        quizCardDiv.textContent = "Quiz complete!";
+        return;
+      }
+      currentCard = quizQueue.shift();
+      showingBack = false;
+      updateCardDisplay();
+    }
+
+    function updateCardDisplay() {
+      quizCardDiv.textContent = showingBack ? currentCard.back : currentCard.front;
+    }
+
+    function toggleCard() {
+      showingBack = !showingBack;
+      updateCardDisplay();
+    }
+
+    function rateCard(score) {
+      let insertIndex = score <= 2 ? 2 : score >= 5 ? quizQueue.length : Math.floor(quizQueue.length / 2);
+      quizQueue.splice(insertIndex, 0, currentCard);
+      nextCard();
+    }
+	function deleteDeck() {
+  const name = document.getElementById('deckName').value.trim();
+  if (!name) {
+    alert("Enter the name of the deck to delete.");
+    return;
+  }
+
+  const allDecks = getStoredDecks();
+  if (!allDecks[name]) {
+    alert(`Deck "${name}" does not exist.`);
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to delete the deck "${name}"?`)) return;
+
+  delete allDecks[name];
+  localStorage.setItem('flashcardDecks', JSON.stringify(allDecks));
+  deck = [];
+  renderCards();
+  alert(`Deck "${name}" deleted.`);
+}
+let deckListVisible = false;
+
+function toggleDeckList() {
+  const listDiv = document.getElementById('savedDeckList');
+  const btn = document.getElementById('toggleDeckListBtn');
+
+  deckListVisible = !deckListVisible;
+  listDiv.classList.toggle('hidden', !deckListVisible);
+  btn.textContent = deckListVisible ? 'Hide Saved Decks' : 'Show Saved Decks';
+
+  if (deckListVisible) {
+    showSavedDecks();
+  }
+}
+
+function showSavedDecks() {
+  const allDecks = getStoredDecks();
+  const deckNamesDiv = document.getElementById('deckNames');
+  deckNamesDiv.innerHTML = '';
+
+  const names = Object.keys(allDecks);
+  if (names.length === 0) {
+    deckNamesDiv.textContent = "No decks saved.";
+    return;
+  }
+
+  names.forEach(name => {
+    const btn = document.createElement('button');
+    btn.textContent = name;
+    btn.style.marginBottom = '5px';
+    btn.onclick = () => {
+      document.getElementById('deckName').value = name;
+      loadDeck();
+      toggleDeckList(); // Optional: hide list after loading
+    };
+    deckNamesDiv.appendChild(btn);
+  });
+}
+
+  </script>
+</body>
+</html>
