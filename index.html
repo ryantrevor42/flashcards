@@ -167,18 +167,22 @@ function loadDeck() {
       }
     });
 
-    function saveCard() {
-      const front = frontInput.value.trim();
-      const back = backInput.value.trim();
-      if (!front || !back) return;
+   function saveCard() {
+  const front = frontInput.value.trim();
+  const back = backInput.value.trim();
+  const name = document.getElementById('deckName').value.trim();
+  if (!front || !back || !name) return;
 
-      deck.push({ front, back });
-      frontInput.value = '';
-      backInput.value = '';
-      frontInput.focus();
+  deck.push({ front, back });
 
-      renderCards();
-    }
+  frontInput.value = '';
+  backInput.value = '';
+  frontInput.focus();
+
+  autoSaveDeck(name);
+  renderCards();
+}
+
 
     function renderCards() {
   cardsDiv.innerHTML = '';
@@ -194,9 +198,21 @@ function loadDeck() {
 }
 function deleteCard(index) {
   if (!confirm("Delete this card?")) return;
+
   deck.splice(index, 1);
+  const name = document.getElementById('deckName').value.trim();
+
+  autoSaveDeck(name);
   renderCards();
 }
+function autoSaveDeck(name) {
+  if (!name) return;
+
+  const allDecks = getStoredDecks();
+  allDecks[name] = deck;
+  localStorage.setItem('flashcardDecks', JSON.stringify(allDecks));
+}
+
 
 
     function toggleCardList() {
