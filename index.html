@@ -57,6 +57,9 @@
   <h3>Saved Decks</h3>
   <div id="deckNames"></div>
 </div>
+<button onclick="exportDeck()">Export Deck</button>
+<input type="file" id="importInput" accept=".json" style="display:none" onchange="importDeck(event)">
+<button onclick="document.getElementById('importInput').click()">Import Deck</button>
 
 
   <h2>Flashcard Creator</h2>
@@ -295,6 +298,48 @@ function showSavedDecks() {
     deckNamesDiv.appendChild(btn);
   });
 }
+
+function exportDeck() {
+  const name = document.getElementById('deckName').value.trim();
+  if (!name) {
+    alert("Please enter a deck name before exporting.");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(deck, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name + ".json";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importDeck(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedDeck = JSON.parse(e.target.result);
+      if (!Array.isArray(importedDeck)) throw new Error("Invalid format");
+
+      deck = importedDeck;
+      renderCards();
+
+      const name = file.name.replace('.json', '');
+      document.getElementById('deckName').value = name;
+      alert(`Deck "${name}" imported.`);
+
+    } catch (err) {
+      alert("Failed to import: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 
   </script>
 </body>
